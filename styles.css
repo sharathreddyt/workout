@@ -3,6 +3,9 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  /* Hardware acceleration for smooth scrolling */
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
 }
 
 body {
@@ -110,6 +113,8 @@ iframe {
   border-radius: 8px;
   margin-top: 1rem;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  /* Optimize iframe loading on mobile */
+  loading: lazy;
 }
 
 /* Exercise Instructions */
@@ -165,6 +170,86 @@ iframe {
   background-color: #fafafa;
   border-radius: 10px;
   border: 1px solid #e0e0e0;
+}
+
+/* Performance optimizations for mobile */
+* {
+  /* Prevent layout thrashing */
+  iframe, 
+  .video-placeholder,
+  .video-thumbnail {
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  
+  /* Optimize images and videos for mobile */
+  img, 
+  iframe {
+    image-rendering: optimizeSpeed;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: optimize-contrast;
+  }
+}
+
+/* Performance optimizations for mobile devices to prevent crashes */
+
+/* Hardware acceleration for smooth performance */
+.video-placeholder,
+.video-thumbnail,
+iframe {
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+/* Reduce expensive visual effects on mobile */
+@media (max-width: 768px) {
+  /* Simplify shadows for better performance */
+  .container {
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+  }
+  
+  ol li {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Disable expensive hover effects on touch devices */
+  .exercise-link:hover {
+    background-color: transparent;
+    color: #2c3e50;
+  }
+  
+  .exercise-link:hover::after {
+    opacity: 0;
+  }
+}
+
+/* Critical performance optimizations for very small screens */
+@media (max-width: 480px) {
+  /* Disable animations to reduce CPU load */
+  * {
+    animation-duration: 0s !important;
+    transition-duration: 0.05s !important;
+  }
+  
+  /* Remove complex visual elements */
+  .exercise-link::after {
+    display: none;
+  }
+  
+  /* Simplify gradients */
+  h2 {
+    background: #3498db;
+  }
+  
+  /* Reduce border radius complexity */
+  .container,
+  .day-section,
+  ol li {
+    border-radius: 4px;
+  }
 }
 
 /* Responsive Design */
