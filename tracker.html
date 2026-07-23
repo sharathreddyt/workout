@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>5-Day Workout Tracker</title>
+<style>
+  body { margin: 0; background: #14161a; }
+  * { box-sizing: border-box; }
+  .wt-root { font-family: Arial, Helvetica, sans-serif; background: #14161a; color: #eef0f1; padding: 16px; max-width: 480px; margin: 0 auto; min-height: 100vh; }
+  .wt-h1 { font-size: 20px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; margin: 0 0 4px; color: #f4f5f6; }
+  .wt-sub { font-size: 12px; color: #9199a3; margin: 0 0 16px; }
+  .wt-week-row { display: flex; gap: 6px; margin-bottom: 18px; }
+  .wt-week-box { flex: 1; height: 6px; border-radius: 2px; background: #2a2e35; }
+  .wt-week-box.done { background: #c8102e; }
+  .wt-days { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 14px; -webkit-overflow-scrolling: touch; }
+  .wt-day-btn { flex: 0 0 auto; padding: 8px 14px; border-radius: 20px; border: 1px solid #33373f; background: #1c1f24; color: #b8bec7; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+  .wt-day-btn.active { background: #c8102e; border-color: #c8102e; color: #fff; }
+  .wt-var-row { display: flex; gap: 8px; margin-bottom: 18px; }
+  .wt-var-btn { flex: 1; padding: 10px 0; border-radius: 8px; border: 1px solid #33373f; background: #1c1f24; color: #9199a3; font-size: 13px; font-weight: 700; }
+  .wt-var-btn.active { background: #262a31; border-color: #c8102e; color: #f4f5f6; }
+  .wt-section-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #6b7480; margin: 20px 0 8px; }
+  .wt-card { background: #1c1f24; border: 1px solid #2a2e35; border-radius: 10px; padding: 12px; margin-bottom: 8px; display: flex; gap: 12px; align-items: flex-start; }
+  .wt-card-main { flex: 1; min-width: 0; }
+  .wt-diagram { flex: 0 0 auto; }
+  .wt-muscle-label { font-size: 11px; color: #9199a3; margin: 0 0 8px; }
+  .wt-watch-link { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #e0554a; text-decoration: none; margin-bottom: 10px; }
+  .wt-watch-link:active { opacity: 0.7; }
+  .wt-ex-name { font-size: 14px; font-weight: 700; color: #f4f5f6; margin: 0 0 4px; }
+  .wt-ex-meta { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; }
+  .wt-equip-badge { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: #ffb4a6; background: #3a2420; border: 1px solid #5a352c; border-radius: 4px; padding: 2px 6px; }
+  .wt-ex-target { font-family: 'Courier New', monospace; font-size: 12px; color: #9fe1cb; margin: 0; }
+  .wt-log-row { display: flex; gap: 8px; }
+  .wt-log-field { flex: 1; }
+  .wt-log-label { font-size: 10px; color: #6b7480; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 3px; }
+  .wt-input { width: 100%; background: #14161a; border: 1px solid #33373f; border-radius: 6px; color: #eef0f1; font-size: 14px; padding: 7px 8px; font-family: 'Courier New', monospace; }
+  .wt-input::placeholder { color: #4a4f57; }
+  .wt-input:focus { outline: none; border-color: #c8102e; }
+  .wt-notes { width: 100%; background: #14161a; border: 1px solid #33373f; border-radius: 6px; color: #eef0f1; font-size: 13px; padding: 7px 8px; margin-top: 8px; font-family: Arial, sans-serif; }
+  .wt-cardio-card { background: #1e2a24; border: 1px solid #2d4038; border-radius: 10px; padding: 12px; margin-top: 4px; font-size: 13px; color: #b7d9c9; }
+  .wt-save-note { font-size: 11px; color: #6b7480; text-align: center; margin-top: 18px; padding-bottom: 8px; }
+  .wt-check { color: #4caf6d; font-size: 12px; margin-left: 6px; opacity: 0; transition: opacity 0.2s; }
+  .wt-check.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="wt-root" id="wtRoot">
+  <h1 class="wt-h1">5-day plan</h1>
+  <p class="wt-sub">Tap a day, pick this week's variation, log as you go</p>
+  <div class="wt-days" id="wtDays"></div>
+  <div class="wt-var-row" id="wtVars"></div>
+  <div id="wtBody"></div>
+  <p class="wt-save-note" id="wtSaveNote">Saved automatically on this device</p>
+</div>
+<script>
+(function(){
+  var DIRECT_LINKS = {
+    "Barbell Bench Press": "https://www.youtube.com/watch?v=rT7DgCr-3pg",
+    "Barbell Row": "https://www.youtube.com/watch?v=9efgcAjQe7E",
+    "Pendlay Row": "https://www.youtube.com/watch?v=9efgcAjQe7E",
+    "Single-Arm Dumbbell Row": "https://www.youtube.com/watch?v=sUqz6oaISkQ",
+    "Deadlift": "https://www.youtube.com/watch?v=n454SpMZRt8",
+    "Rack Pulls": "https://www.youtube.com/watch?v=n454SpMZRt8",
+    "Trap Bar Deadlift": "https://www.youtube.com/watch?v=n454SpMZRt8",
+    "Deadlift (light-moderate)": "https://www.youtube.com/watch?v=n454SpMZRt8",
+    "Back Squat": "https://www.youtube.com/watch?v=1oed-UmAxFs",
+    "Front Squat": "https://www.youtube.com/watch?v=1oed-UmAxFs",
+    "Back Squat (lighter, higher rep)": "https://www.youtube.com/watch?v=1oed-UmAxFs",
+    "Pull-ups": "https://www.youtube.com/watch?v=ylVmNQlKdAI",
+    "Pull-ups (assisted if needed)": "https://www.youtube.com/watch?v=ylVmNQlKdAI",
+    "Assisted Pull-up": "https://www.youtube.com/watch?v=ylVmNQlKdAI",
+    "Chin-ups": "https://www.youtube.com/watch?v=ylVmNQlKdAI",
+    "Lat Pulldown": "https://www.youtube.com/watch?v=0xzwnBT17Fk",
+    "Wide-Grip Lat Pulldown": "https://www.youtube.com/watch?v=0xzwnBT17Fk"
+  };
+
+  function videoLink(name){
+    if (DIRECT_LINKS[name]) return { url: DIRECT_LINKS[name], type: "Verified" };
+    var q = encodeURIComponent("Scott Herman Fitness " + name);
+    return { url: "https://www.youtube.com/results?search_query=" + q, type: "Search" };
+  }
+
+  var PLAN = {
+    "Mon": { label: "Upper body", variations: {
+      A: [["Barbell bench press","Barbell","Chest","4 x 6-8"],["Barbell row","Barbell","Back (mid-back)","4 x 6-8"],["Seated overhead press","Barbell","Shoulders (front delt)","3 x 8-10"],["Lat pulldown","Cable","Back (lats)","3 x 10-12"],["Incline dumbbell press","Dumbbell","Chest (upper)","3 x 10-12"],["Face pulls","Cable","Shoulders (rear delt)","3 x 15"]],
+      B: [["Dumbbell bench press","Dumbbell","Chest","4 x 8-10"],["Chest-supported row","Machine","Back (mid-back)","4 x 8-10"],["Arnold press","Dumbbell","Shoulders (front/side delt)","3 x 10-12"],["Pull-ups (assisted if needed)","Bodyweight","Back (lats)","3 x 8-10"],["Cable chest fly","Cable","Chest","3 x 12-15"],["Rear delt fly","Dumbbell","Shoulders (rear delt)","3 x 15"]],
+      C: [["Machine chest press","Machine","Chest","4 x 10-12"],["T-bar row","Machine","Back (mid-back)","4 x 8-10"],["Push press","Barbell","Shoulders (front delt)","3 x 6-8"],["Assisted pull-up","Machine","Back (lats)","3 x 8-10"],["Dumbbell floor press","Dumbbell","Chest","3 x 10-12"],["Cable face pull","Cable","Shoulders (rear delt)","3 x 15"]]
+    }, core: [["Hanging leg raise","Bodyweight","Core (flexion)","3 x 12"],["Pallof press","Cable","Core (anti-rotation)","3 x 12/side"]], cardio: "15-20 min moderate (incline walk or bike)" },
+    "Tue": { label: "Lower body", variations: {
+      A: [["Back squat","Barbell","Legs (quads)","4 x 6-8"],["Romanian deadlift","Barbell","Legs (hamstrings/glutes)","3 x 8-10"],["Walking lunges","Dumbbell","Legs (quads/glutes)","3 x 10/leg"],["Leg press","Machine","Legs (quads)","3 x 10-12"],["Standing calf raise","Machine","Legs (calves)","4 x 12-15"],["Cable hip abduction","Cable","Legs (hip/glute medius)","3 x 12-15/side"]],
+      B: [["Front squat","Barbell","Legs (quads)","4 x 6-8"],["Hip thrust","Barbell","Legs (glutes)","3 x 8-10"],["Bulgarian split squat","Dumbbell","Legs (quads/glutes)","3 x 8-10/leg"],["Leg curl","Machine","Legs (hamstrings)","3 x 10-12"],["Seated calf raise","Machine","Legs (calves)","4 x 15"],["Lateral lunges","Dumbbell","Legs (adductors/glutes)","3 x 10/leg"]],
+      C: [["Trap bar deadlift","Barbell (Trap Bar)","Legs/Back (hamstrings/glutes/erectors)","4 x 6-8"],["Leg press","Machine","Legs (quads)","4 x 10-12"],["Walking lunges","Dumbbell","Legs (quads/glutes)","3 x 10/leg"],["Leg extension","Machine","Legs (quads)","3 x 12-15"],["Standing calf raise","Machine","Legs (calves)","4 x 15"],["Machine hip adduction","Machine","Legs (adductors)","3 x 12-15/side"]]
+    }, core: [["Plank","Bodyweight","Core (anti-extension)","3 x 45 sec"],["Dead bug","Bodyweight","Core (stability)","3 x 12/side"]], cardio: "10-15 min easy pace" },
+    "Wed": { label: "Push", variations: {
+      A: [["Incline barbell press","Barbell","Chest (upper)","4 x 6-8"],["Dumbbell shoulder press","Dumbbell","Shoulders (front delt)","3 x 8-10"],["Dips","Bodyweight","Chest/Triceps","3 x 10-12"],["Lateral raises","Dumbbell","Shoulders (side delt)","4 x 12-15"],["Cable tricep pushdown","Cable","Triceps","3 x 10-12"]],
+      B: [["Flat dumbbell press","Dumbbell","Chest","4 x 8-10"],["Machine shoulder press","Machine","Shoulders (front delt)","3 x 10-12"],["Close-grip bench press","Barbell","Triceps/Chest","3 x 8-10"],["Cable lateral raise","Cable","Shoulders (side delt)","4 x 15"],["Overhead tricep extension","Dumbbell","Triceps","3 x 10-12"]],
+      C: [["Push press","Barbell","Shoulders (front delt)","4 x 6-8"],["Incline dumbbell press","Dumbbell","Chest (upper)","3 x 8-10"],["Machine chest press","Machine","Chest","3 x 10-12"],["Cable lateral raise","Cable","Shoulders (side delt)","4 x 15"],["Skull crushers","Barbell (EZ-bar)","Triceps","3 x 10-12"]]
+    }, core: [["Cable woodchop","Cable","Core (anti-rotation)","3 x 12/side"],["Weighted sit-up","Dumbbell/Plate","Core (flexion)","3 x 12"]], cardio: "15-20 min moderate" },
+    "Thu": { label: "Pull", variations: {
+      A: [["Deadlift","Barbell","Back (erectors)/Hamstrings/Glutes","3 x 5"],["Pull-ups","Bodyweight","Back (lats)","4 x 6-10"],["Seated cable row","Cable","Back (mid-back)","3 x 10-12"],["Barbell curl","Barbell","Biceps","3 x 10-12"],["Reverse pec deck","Machine","Shoulders (rear delt)","3 x 12-15"]],
+      B: [["Rack pulls","Barbell","Back (erectors/traps)","3 x 5-6"],["Single-arm dumbbell row","Dumbbell","Back (lats/mid-back)","3 x 10/side"],["Wide-grip lat pulldown","Cable","Back (lats)","3 x 10-12"],["Hammer curl","Dumbbell","Biceps/Forearms","3 x 10-12"],["Incline dumbbell curl","Dumbbell","Biceps","3 x 10-12"],["Rear delt fly","Dumbbell","Shoulders (rear delt)","3 x 15"]],
+      C: [["Pendlay row","Barbell","Back (mid-back)","4 x 6-8"],["Chin-ups","Bodyweight","Back (lats)/Biceps","3 x 8-10"],["T-bar row","Machine","Back (mid-back)","3 x 10-12"],["Cable curl","Cable","Biceps","3 x 10-12"],["Reverse curl","Barbell (EZ-bar)","Forearms/Biceps","3 x 10-12"],["Cable rear delt fly","Cable","Shoulders (rear delt)","3 x 15"]]
+    }, core: [["Side plank","Bodyweight","Core (anti-lateral flexion)","3 x 30 sec/side"],["Dead bug","Bodyweight","Core (stability)","3 x 12/side"]], cardio: "10-15 min easy" },
+    "Fri": { label: "Legs", variations: {
+      A: [["Front squat","Barbell","Legs (quads)","3 x 8"],["Bulgarian split squat","Dumbbell","Legs (quads/glutes)","3 x 8-10/leg"],["Leg curl","Machine","Legs (hamstrings)","3 x 10-12"],["Hip thrust","Barbell","Legs (glutes)","3 x 10-12"]],
+      B: [["Back squat (lighter, higher rep)","Barbell","Legs (quads)","3 x 10"],["Walking lunges","Dumbbell","Legs (quads/glutes)","3 x 12/leg"],["Leg extension","Machine","Legs (quads)","3 x 12-15"],["Romanian deadlift","Barbell","Legs (hamstrings/glutes)","3 x 10-12"],["Seated calf raise","Machine","Legs (calves)","4 x 15"]],
+      C: [["Deadlift (light-moderate)","Barbell","Legs/Back (hamstrings/glutes/erectors)","3 x 6"],["Leg press","Machine","Legs (quads)","3 x 10-12"],["Walking lunges","Dumbbell","Legs (quads/glutes)","3 x 10/leg"],["Leg curl","Machine","Legs (hamstrings)","3 x 12-15"],["Standing calf raise","Machine","Legs (calves)","4 x 15"]]
+    }, core: [["Ab wheel rollout","Bodyweight","Core (anti-extension)","3 x 10"],["Side plank","Bodyweight","Core (anti-lateral flexion)","3 x 30 sec/side"]], cardio: "15-20 min moderate" }
+  };
+  var DAY_ORDER = ["Mon","Tue","Wed","Thu","Fri"];
+  var state = { day: "Mon", variation: "A" };
+
+  function key(day, variation, exName){
+    return "log:" + day + ":" + variation + ":" + exName;
+  }
+
+  async function loadLog(day, variation, exName){
+    try {
+      var raw = localStorage.getItem(key(day, variation, exName));
+      return raw ? JSON.parse(raw) : { weight: "", reps: "", notes: "" };
+    } catch(e){ return { weight: "", reps: "", notes: "" }; }
+  }
+
+  async function saveLog(day, variation, exName, data){
+    try {
+      localStorage.setItem(key(day, variation, exName), JSON.stringify(data));
+    } catch(e){}
+  }
+
+  async function loadCurrentVariation(day){
+    try {
+      var v = localStorage.getItem("current_variation:" + day);
+      return v || "A";
+    } catch(e){ return "A"; }
+  }
+
+  async function saveCurrentVariation(day, v){
+    try { localStorage.setItem("current_variation:" + day, v); } catch(e){}
+  }
+
+  function renderDays(){
+    var el = document.getElementById("wtDays");
+    el.innerHTML = "";
+    DAY_ORDER.forEach(function(d){
+      var btn = document.createElement("button");
+      btn.className = "wt-day-btn" + (d === state.day ? " active" : "");
+      btn.textContent = d;
+      btn.onclick = function(){ selectDay(d); };
+      el.appendChild(btn);
+    });
+  }
+
+  function renderVars(){
+    var el = document.getElementById("wtVars");
+    el.innerHTML = "";
+    ["A","B","C"].forEach(function(v){
+      var btn = document.createElement("button");
+      btn.className = "wt-var-btn" + (v === state.variation ? " active" : "");
+      btn.textContent = "Variation " + v;
+      btn.onclick = function(){ selectVariation(v); };
+      el.appendChild(btn);
+    });
+  }
+
+  async function renderBody(){
+    var body = document.getElementById("wtBody");
+    body.innerHTML = "";
+    var dayData = PLAN[state.day];
+
+    var mainLabel = document.createElement("div");
+    mainLabel.className = "wt-section-label";
+    mainLabel.textContent = dayData.label;
+    body.appendChild(mainLabel);
+
+    for (var i = 0; i < dayData.variations[state.variation].length; i++){
+      var pair = dayData.variations[state.variation][i];
+      body.appendChild(await buildExerciseCard(pair[0], pair[1], pair[2], pair[3]));
+    }
+
+    if (dayData.core.length){
+      var coreLabel = document.createElement("div");
+      coreLabel.className = "wt-section-label";
+      coreLabel.textContent = "Core";
+      body.appendChild(coreLabel);
+      for (var j = 0; j < dayData.core.length; j++){
+        var cp = dayData.core[j];
+        body.appendChild(await buildExerciseCard(cp[0], cp[1], cp[2], cp[3]));
+      }
+    }
+
+    var cardioLabel = document.createElement("div");
+    cardioLabel.className = "wt-section-label";
+    cardioLabel.textContent = "Cardio";
+    body.appendChild(cardioLabel);
+    var cardioCard = document.createElement("div");
+    cardioCard.className = "wt-cardio-card";
+    cardioCard.textContent = dayData.cardio;
+    body.appendChild(cardioCard);
+  }
+
+  function muscleRegions(text){
+    text = (text || "").toLowerCase();
+    var regions = [];
+    if (text.indexOf("chest") > -1) regions.push("chest");
+    if (text.indexOf("shoulder") > -1) regions.push("shoulders");
+    if (text.indexOf("back") > -1) regions.push("back");
+    if (text.indexOf("bicep") > -1 || text.indexOf("tricep") > -1 || text.indexOf("forearm") > -1) regions.push("arms");
+    if (text.indexOf("legs") > -1) regions.push("legs");
+    if (text.indexOf("core") > -1) regions.push("core");
+    return regions;
+  }
+
+  function buildMuscleSvg(muscleGroupText){
+    var active = muscleRegions(muscleGroupText);
+    function f(region){ return active.indexOf(region) > -1 ? "#e0554a" : "#33373f"; }
+    return '<svg viewBox="0 0 100 160" width="40" height="64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+      '<rect x="28" y="28" width="44" height="70" rx="18" fill="#20242b"/>' +
+      '<circle cx="50" cy="14" r="11" fill="#3a3f47"/>' +
+      '<rect x="15" y="38" width="11" height="38" rx="5" fill="' + f("arms") + '"/>' +
+      '<rect x="74" y="38" width="11" height="38" rx="5" fill="' + f("arms") + '"/>' +
+      '<circle cx="32" cy="34" r="9" fill="' + f("shoulders") + '"/>' +
+      '<circle cx="68" cy="34" r="9" fill="' + f("shoulders") + '"/>' +
+      '<ellipse cx="50" cy="46" rx="18" ry="12" fill="' + f("chest") + '"/>' +
+      '<rect x="24" y="40" width="7" height="34" rx="3" fill="' + f("back") + '"/>' +
+      '<rect x="69" y="40" width="7" height="34" rx="3" fill="' + f("back") + '"/>' +
+      '<rect x="38" y="60" width="24" height="26" rx="4" fill="' + f("core") + '"/>' +
+      '<rect x="35" y="92" width="12" height="42" rx="6" fill="' + f("legs") + '"/>' +
+      '<rect x="53" y="92" width="12" height="42" rx="6" fill="' + f("legs") + '"/>' +
+    '</svg>';
+  }
+
+  async function buildExerciseCard(name, equipment, muscleGroup, target){
+    var log = await loadLog(state.day, state.variation, name);
+    var card = document.createElement("div");
+    card.className = "wt-card";
+
+    var main = document.createElement("div");
+    main.className = "wt-card-main";
+
+    var nameEl = document.createElement("p");
+    nameEl.className = "wt-ex-name";
+    nameEl.textContent = name;
+    main.appendChild(nameEl);
+
+    var muscleEl = document.createElement("p");
+    muscleEl.className = "wt-muscle-label";
+    muscleEl.textContent = muscleGroup;
+    main.appendChild(muscleEl);
+
+    var vid = videoLink(name);
+    var watchLink = document.createElement("a");
+    watchLink.className = "wt-watch-link";
+    watchLink.href = vid.url;
+    watchLink.target = "_blank";
+    watchLink.rel = "noopener noreferrer";
+    watchLink.textContent = (vid.type === "Verified" ? "Watch (Scott Herman)" : "Watch (search)");
+    main.appendChild(watchLink);
+
+    var metaRow = document.createElement("div");
+    metaRow.className = "wt-ex-meta";
+    var badge = document.createElement("span");
+    badge.className = "wt-equip-badge";
+    badge.textContent = equipment;
+    var targetEl = document.createElement("span");
+    targetEl.className = "wt-ex-target";
+    targetEl.textContent = target;
+    metaRow.appendChild(badge);
+    metaRow.appendChild(targetEl);
+    main.appendChild(metaRow);
+
+    var row = document.createElement("div");
+    row.className = "wt-log-row";
+
+    var weightField = document.createElement("div");
+    weightField.className = "wt-log-field";
+    var weightLabel = document.createElement("span");
+    weightLabel.className = "wt-log-label";
+    weightLabel.textContent = "Weight";
+    var weightInput = document.createElement("input");
+    weightInput.className = "wt-input";
+    weightInput.type = "text";
+    weightInput.inputMode = "decimal";
+    weightInput.placeholder = "lbs";
+    weightInput.value = log.weight || "";
+    weightField.appendChild(weightLabel);
+    weightField.appendChild(weightInput);
+
+    var repsField = document.createElement("div");
+    repsField.className = "wt-log-field";
+    var repsLabel = document.createElement("span");
+    repsLabel.className = "wt-log-label";
+    repsLabel.textContent = "Reps";
+    var repsInput = document.createElement("input");
+    repsInput.className = "wt-input";
+    repsInput.type = "text";
+    repsInput.inputMode = "numeric";
+    repsInput.placeholder = "done";
+    repsInput.value = log.reps || "";
+    repsField.appendChild(repsLabel);
+    repsField.appendChild(repsInput);
+
+    row.appendChild(weightField);
+    row.appendChild(repsField);
+    main.appendChild(row);
+
+    var notes = document.createElement("input");
+    notes.className = "wt-notes";
+    notes.type = "text";
+    notes.placeholder = "Notes (form cue, next time...)";
+    notes.value = log.notes || "";
+    main.appendChild(notes);
+
+    var check = document.createElement("span");
+    check.className = "wt-check";
+    check.textContent = "saved";
+    main.appendChild(check);
+
+    var diagram = document.createElement("div");
+    diagram.className = "wt-diagram";
+    diagram.innerHTML = buildMuscleSvg(muscleGroup);
+
+    card.appendChild(main);
+    card.appendChild(diagram);
+
+    var timeout;
+    function scheduleSave(){
+      clearTimeout(timeout);
+      timeout = setTimeout(async function(){
+        await saveLog(state.day, state.variation, name, {
+          weight: weightInput.value,
+          reps: repsInput.value,
+          notes: notes.value
+        });
+        check.classList.add("show");
+        setTimeout(function(){ check.classList.remove("show"); }, 1200);
+      }, 500);
+    }
+    weightInput.addEventListener("input", scheduleSave);
+    repsInput.addEventListener("input", scheduleSave);
+    notes.addEventListener("input", scheduleSave);
+
+    return card;
+  }
+
+  async function selectDay(d){
+    state.day = d;
+    state.variation = await loadCurrentVariation(d);
+    renderDays();
+    renderVars();
+    renderBody();
+  }
+
+  async function selectVariation(v){
+    state.variation = v;
+    await saveCurrentVariation(state.day, v);
+    renderVars();
+    renderBody();
+  }
+
+  async function init(){
+    state.variation = await loadCurrentVariation(state.day);
+    renderDays();
+    renderVars();
+    renderBody();
+  }
+  init();
+})();
+</script>
+</body>
+</html>
